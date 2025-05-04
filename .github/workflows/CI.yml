@@ -1,6 +1,5 @@
 name: CI
 
-# Grant write permission so we can push updates
 permissions:
   contents: write
 
