@@ -1,18 +1,8 @@
-name: Run Datadog Synthetic tests
-
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-
 jobs:
   synthetics:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
@@ -20,12 +10,12 @@ jobs:
           node-version: '18'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install        # ← ci → install 로 변경
 
       - name: Run Datadog Synthetic tests
         uses: DataDog/synthetics-ci-github-action@v1.4.0
         with:
-          api_key: ${{ secrets.DD_API_KEY }}
-          app_key: ${{ secrets.DD_APP_KEY }}
-          site:    ${{ secrets.DD_SITE }}         # 옵션: datadoghq.com(default) 또는 datadoghq.eu
-          test_search_query: "tag:e2e-tests"      # synthetics/*.json 의 tags 와 매칭
+          api_key:     ${{ secrets.DD_API_KEY }}
+          app_key:     ${{ secrets.DD_APP_KEY }}
+          site:        ${{ secrets.DD_SITE }}
+          test_search_query: "tag:e2e-tests"
