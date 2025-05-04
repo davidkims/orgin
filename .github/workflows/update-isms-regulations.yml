@@ -1,0 +1,77 @@
+# .github/workflows/update-isms-regulations.yml
+name: Update ISMS Regulations
+
+permissions:
+  contents: write
+
+on:
+  workflow_dispatch:
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Generate ISMS regulations document
+        run: |
+          mkdir -p docs
+          cat > docs/ISMS_Regulations.md << 'EOF'
+# ISMS 정보보호 관리체계 규정
+
+*최종 업데이트: $(date -u +'%Y-%m-%dT%H:%M:%SZ') UTC*
+
+## 1. 개요
+- **목적**: 조직의 정보자산을 보호하고, 체계적인 관리체계를 수립·운영하여 기밀성, 무결성, 가용성을 보장함.
+- **적용범위**: 전사 정보자산(시스템, 네트워크, 데이터, 서비스 등)을 대상으로 함.
+
+## 2. 경영진의 책임
+1. 최고경영진(CEO)은 ISMS 정책을 승인하고, 조직에 전파할 책임이 있음.  
+2. CISO는 정보보호 전략 수립·리스크 관리·감사 대응을 총괄함.
+
+## 3. 문서화 요건
+- 정보보호 정책, 표준, 절차, 지침을 문서화하여 중앙 저장소에 보관.  
+- 모든 변경 이력은 버전 관리 시스템에 기록.
+
+## 4. 위험관리 절차 (PDCA 사이클)
+1. **Plan**: 자산 식별 → 위협·취약점 분석 → 위험 평가  
+2. **Do**: 통제선택 → 구현 및 운영  
+3. **Check**: 모니터링 → 내부 감사  
+4. **Act**: 개선 조치 → 정책·절차 갱신
+
+## 5. 주요 보안 통제 카테고리
+| 분류         | 주요 항목                                    |
+|-------------|---------------------------------------------|
+| 조직보안     | 정보보호 조직구조, 역할·책임, 보안인식 교육      |
+| 자산관리     | 자산 식별·분류, 소유권, 사용·폐기 절차           |
+| 인적 보안     | 채용 전·후 검증, 보안 교육, 퇴직자 접근권 제한   |
+| 물리보안     | 출입통제, 설비보호, CCTV 운영                   |
+| 운영보안     | 백업·복구, 패치 관리, 변경관리, 로그 관리        |
+| 접근통제     | 인증·인가, 계정 관리, 세션 관리                 |
+| 암호화       | 데이터 저장·전송 암호화 정책, 키 관리           |
+| 네트워크 보안 | 방화벽·IDS/IPS, VPN, 분리망 설계               |
+| 시스템 개발  | SDLC 보안 요구사항, 코드 리뷰, 취약점 스캔       |
+| 공급망 보안   | 공급업체 평가, 계약 상 보안 요구사항 관리       |
+| 컴플라이언스 | 법·규제 준수, 개인정보 보호법, 내부·외부 감사    |
+
+## 6. 인증·감사
+- **ISO/IEC 27001**, **ISMS-P** 인증 요구사항에 맞춰 연 1회 외부 심사 수행.  
+- 내부 감사 계획 수립 및 분기별 점검 결과 보고.
+
+## 7. 교육·훈련
+- 전 직원을 대상으로 연 1회 이상 보안 인식 교육 실시.  
+- 직무별 심화 교육 프로그램 운영.
+
+EOF
+
+      - name: Commit & push ISMS regulations
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/ISMS_Regulations.md
+          git diff --quiet --cached || git commit -m "chore: update ISMS regulations document"
+          git push
