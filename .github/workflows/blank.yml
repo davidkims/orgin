@@ -1,0 +1,99 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. 소스 코드 체크아웃 (커밋 푸시 권한 유지)
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      # 2. 개발 도구 설치: 빌드·버전 관리·네트워크 툴 등
+      - name: Install dev tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            git \
+            curl \
+            wget \
+            vim \
+            unzip
+
+      # 3. Python 환경 설정 및 패키지 설치
+      - name: Set up Python 3
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install Python dev packages
+        run: |
+          python -m pip install --upgrade pip
+          pip install \
+            flask \
+            requests \
+            pytest \
+            black \
+            mypy
+
+      # 4. Java 환경 설정 및 패키지 설치
+      - name: Set up Java 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install Java build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y maven
+
+      # 5. Python 서버 다운로드 및 설치
+      - name: Download & install Python server
+        run: |
+          wget https://example.com/path/to/python-server.tar.gz -O python-server.tar.gz
+          sudo mkdir -p /opt/python-server
+          sudo tar -xzf python-server.tar.gz -C /opt/python-server
+          cd /opt/python-server
+          pip install -r requirements.txt
+
+      # 6. Java 서버 다운로드 및 설치
+      - name: Download & install Java server
+        run: |
+          wget https://example.com/path/to/java-server.zip -O java-server.zip
+          sudo mkdir -p /opt/java-server
+          sudo unzip -q java-server.zip -d /opt/java-server
+          cd /opt/java-server
+          mvn clean install -DskipTests
+
+      # 7. 정보보호 규정 및 자료집 업데이트
+      - name: Update security policies & materials
+        run: |
+          # scripts/update_docs.py 가 docs/ 디렉터리를 갱신한다고 가정
+          python scripts/update_docs.py
+
+      # 8. 변경된 문서 커밋 & 푸시
+      - name: Commit & push updated docs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/
+          git diff --cached --quiet || \
+            (git commit -m "chore: update information security regulations & materials" && git push)
+
+      # 9. 마지막 확인
+      - name: Verify installation
+        run: |
+          python --version
+          java -version
+          mvn -v
+          pip show flask requests pytest black mypy || true
