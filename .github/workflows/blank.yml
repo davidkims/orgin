@@ -51,8 +51,7 @@ jobs:
             echo "::warning ::PYTHON_SERVER_URL is not set or placeholder; skipping download"
           else
             echo "Downloading Python server from $URL"
-            curl -fSL "$URL" -o python-server.tar.gz \
-              || { echo "::error ::Failed to download Python server"; exit 1; }
+            curl -fSL "$URL" -o python-server.tar.gz || { echo "::error ::Failed to download Python server"; exit 1; }
             sudo mkdir -p /opt/python-server
             sudo tar -xzf python-server.tar.gz -C /opt/python-server
             python -m pip install --upgrade pip setuptools wheel
@@ -67,4 +66,29 @@ jobs:
         run: |
           URL="${JAVA_SERVER_URL:-https://example.com/path/to/java-server.zip}"
           if [[ "$URL" == *"example.com"* ]]; then
-            echo "::warning ::JAVA_SERVER_URL is not set or placeholder; skipping download
+            echo "::warning ::JAVA_SERVER_URL is not set or placeholder; skipping download"
+          else
+            echo "Downloading Java server from $URL"
+            curl -fSL "$URL" -o java-server.zip || { echo "::error ::Failed to download Java server"; exit 1; }
+            sudo mkdir -p /opt/java-server
+            sudo unzip -q java-server.zip -d /opt/java-server
+            cd /opt/java-server
+            mvn clean install -DskipTests
+          fi
+
+      - name: Update security policies & materials
+        run: python scripts/update_docs.py
+
+      - name: Commit & push updated docs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/
+          git diff --quiet --cached || (git commit -m "chore: update information security regulations & materials" && git push)
+
+      - name: Verify installation
+        run: |
+          python --version
+          java -version
+          mvn -v
+          pip show flask requests pytest black mypy || true
