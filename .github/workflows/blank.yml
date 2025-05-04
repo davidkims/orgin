@@ -11,13 +11,18 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    # 환경 변수로 실제 다운로드 URL을 GitHub Secrets에 저장해 사용
+    env:
+      PYTHON_SERVER_URL: ${{ secrets.PYTHON_SERVER_URL }}
+      JAVA_SERVER_URL:   ${{ secrets.JAVA_SERVER_URL }}
+
     steps:
-      # 1. 소스 코드 체크아웃 (커밋 푸시 권한 유지)
+      # 1. 코드 체크아웃 (커밋 후 푸시 가능)
       - uses: actions/checkout@v4
         with:
           persist-credentials: true
 
-      # 2. 개발 도구 설치: 빌드·버전 관리·네트워크 툴 등
+      # 2. 개발 도구 설치
       - name: Install dev tools
         run: |
           sudo apt-get update
@@ -29,7 +34,7 @@ jobs:
             vim \
             unzip
 
-      # 3. Python 환경 설정 및 패키지 설치
+      # 3. Python 환경 설정 및 개발 패키지 설치
       - name: Set up Python 3
         uses: actions/setup-python@v4
         with:
@@ -37,7 +42,7 @@ jobs:
 
       - name: Install Python dev packages
         run: |
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade pip setuptools wheel
           pip install \
             flask \
             requests \
@@ -45,7 +50,7 @@ jobs:
             black \
             mypy
 
-      # 4. Java 환경 설정 및 패키지 설치
+      # 4. Java 환경 설정 및 빌드 도구 설치
       - name: Set up Java 17
         uses: actions/setup-java@v3
         with:
@@ -57,29 +62,39 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y maven
 
-      # 5. Python 서버 다운로드 및 설치
+      # 5. Python 서버 다운로드 & 설치 (404 체크 포함)
       - name: Download & install Python server
         run: |
-          wget https://example.com/path/to/python-server.tar.gz -O python-server.tar.gz
+          echo "Downloading Python server from $PYTHON_SERVER_URL"
+          if ! curl -fSL "$PYTHON_SERVER_URL" -o python-server.tar.gz; then
+            echo "::error ::Failed to download Python server (404 or network error)"
+            exit 1
+          fi
           sudo mkdir -p /opt/python-server
           sudo tar -xzf python-server.tar.gz -C /opt/python-server
-          cd /opt/python-server
-          pip install -r requirements.txt
+          python -m pip install --upgrade pip setuptools wheel
+          if [ -f /opt/python-server/requirements.txt ]; then
+            pip install -r /opt/python-server/requirements.txt
+          else
+            echo "::warning ::requirements.txt not found in /opt/python-server"
+          fi
 
-      # 6. Java 서버 다운로드 및 설치
+      # 6. Java 서버 다운로드 & 설치 (404 체크 포함)
       - name: Download & install Java server
         run: |
-          wget https://example.com/path/to/java-server.zip -O java-server.zip
+          echo "Downloading Java server from $JAVA_SERVER_URL"
+          if ! curl -fSL "$JAVA_SERVER_URL" -o java-server.zip; then
+            echo "::error ::Failed to download Java server (404 or network error)"
+            exit 1
+          fi
           sudo mkdir -p /opt/java-server
           sudo unzip -q java-server.zip -d /opt/java-server
           cd /opt/java-server
           mvn clean install -DskipTests
 
-      # 7. 정보보호 규정 및 자료집 업데이트
+      # 7. 정보보호 규정 및 자료집 업데이트 스크립트 실행
       - name: Update security policies & materials
-        run: |
-          # scripts/update_docs.py 가 docs/ 디렉터리를 갱신한다고 가정
-          python scripts/update_docs.py
+        run: python scripts/update_docs.py
 
       # 8. 변경된 문서 커밋 & 푸시
       - name: Commit & push updated docs
@@ -90,7 +105,7 @@ jobs:
           git diff --cached --quiet || \
             (git commit -m "chore: update information security regulations & materials" && git push)
 
-      # 9. 마지막 확인
+      # 9. 설치 상태 검증
       - name: Verify installation
         run: |
           python --version
