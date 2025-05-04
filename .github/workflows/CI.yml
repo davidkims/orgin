@@ -25,6 +25,17 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           persist-credentials: true
 
+      - name: Validate server URL secrets
+        run: |
+          if [ -z "$PYTHON_SERVER_URL" ]; then
+            echo "::error ::Secret PYTHON_SERVER_URL is not set"
+            exit 1
+          fi
+          if [ -z "$JAVA_SERVER_URL" ]; then
+            echo "::error ::Secret JAVA_SERVER_URL is not set"
+            exit 1
+          fi
+
       - name: Install dev tools
         run: |
           sudo apt-get update
@@ -51,31 +62,21 @@ jobs:
 
       - name: Download & install Python server
         run: |
-          URL="${PYTHON_SERVER_URL:-}"
-          if [[ -n "$URL" ]]; then
-            echo "Downloading Python server from $URL"
-            curl -fSL "$URL" -o python-server.tar.gz || exit 1
-            sudo mkdir -p /opt/python-server
-            sudo tar -xzf python-server.tar.gz -C /opt/python-server
-            python -m pip install --upgrade pip setuptools wheel
-            [[ -f /opt/python-server/requirements.txt ]] && pip install -r /opt/python-server/requirements.txt
-          else
-            echo "::warning ::PYTHON_SERVER_URL not set; skipping Python server download"
-          fi
+          echo "Downloading Python server from $PYTHON_SERVER_URL"
+          curl -fSL "$PYTHON_SERVER_URL" -o python-server.tar.gz
+          sudo mkdir -p /opt/python-server
+          sudo tar -xzf python-server.tar.gz -C /opt/python-server
+          python -m pip install --upgrade pip setuptools wheel
+          pip install -r /opt/python-server/requirements.txt
 
       - name: Download & install Java server
         run: |
-          URL="${JAVA_SERVER_URL:-}"
-          if [[ -n "$URL" ]]; then
-            echo "Downloading Java server from $URL"
-            curl -fSL "$URL" -o java-server.zip || exit 1
-            sudo mkdir -p /opt/java-server
-            sudo unzip -q java-server.zip -d /opt/java-server
-            cd /opt/java-server
-            mvn clean install -DskipTests
-          else
-            echo "::warning ::JAVA_SERVER_URL not set; skipping Java server download"
-          fi
+          echo "Downloading Java server from $JAVA_SERVER_URL"
+          curl -fSL "$JAVA_SERVER_URL" -o java-server.zip
+          sudo mkdir -p /opt/java-server
+          sudo unzip -q java-server.zip -d /opt/java-server
+          cd /opt/java-server
+          mvn clean install -DskipTests
 
       - name: Generate security organization docs
         run: |
